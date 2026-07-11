@@ -1,0 +1,6 @@
+# Bỏ qua môi trường ảo và file rác
+.venv/
+__pycache__/
+*.py[cod]
+.idea/
+.DS_Store

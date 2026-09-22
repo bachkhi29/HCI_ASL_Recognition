@@ -1,4 +1,4 @@
-# 🤟 Hệ Thống Nhận Diện Ký Hiệu ASL (Dual-Hand HCI)
+#  Hệ Thống Nhận Diện Ký Hiệu ASL (Dual-Hand HCI)
 
 [![Python](https://img.shields.io/badge/Python-3.9%2B-blue.svg)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100%2B-009688.svg)](https://fastapi.tiangolo.com/)
@@ -7,14 +7,14 @@
 
 Dự án Nhận diện Ngôn ngữ Ký hiệu Mỹ (ASL) theo thời gian thực (Real-time). Hệ thống là sự kết hợp giữa các thuật toán Học máy kinh điển và thiết kế Tương tác Người - Máy (HCI) độc đáo, nhằm giải quyết bài toán "nhận diện rác" của các ứng dụng theo dõi cử chỉ truyền thống.
 
-## 👨‍💻 Đội ngũ phát triển
+##  Phát triển
 * **Thành viên:** Lý Đình Bách & Thái Hoàng Ân
 * **Chuyên ngành:** Trí tuệ Nhân tạo (Artificial Intelligence)
 * **Đơn vị:** Đại học Sài Gòn (SGU)
 
 
 
-## ✨ Tính năng cốt lõi (HCI - Tương tác Kép)
+##  Tính năng cốt lõi (HCI - Tương tác Kép)
 Hệ thống loại bỏ hoàn toàn sự phụ thuộc vào chuột và bàn phím vật lý thông qua cơ chế phân chia nhiệm vụ cho hai tay:
 * 🤚 **Tay trái (Sign Input):** Đảm nhiệm việc ra dấu các ký tự ASL (A-Z) và các lệnh tĩnh (Space, Delete). Hệ thống liên tục quét tọa độ 3D và đưa vào mô hình phân loại.
 * ✊ **Tay phải (Action Trigger):** Đóng vai trò như phím "Enter". Người dùng xòe tay để ở trạng thái *Sẵn sàng* và **nắm tay lại** để chốt ký tự hiện tại từ tay trái xuất ra màn hình.

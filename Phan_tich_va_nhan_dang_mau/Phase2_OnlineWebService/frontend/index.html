@@ -1,756 +1,112 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HCI: Ngôn Ngữ Ký Hiệu ASL</title>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
-    <style>
-        /* === GIAO DIỆN MINIMALIST TƯƠNG TÁC TỰ NHIÊN === */
-        :root {
-            --bg-color: #0f172a;       /* Nền xanh đen sâu thẳm, không chói */
-            --surface: #1e293b;        /* Màu khối giao diện */
-            --surface-hover: #334155;
-            --text-main: #f1f5f9;
-            --text-muted: #94a3b8;
-            --brand-color: #6366f1;    /* Tím Indigo thanh lịch */
-            --brand-hover: #4f46e5;
-            --success: #10b981;
-            --warning: #f59e0b;
-            --danger: #ef4444;
-            --danger-hover: #dc2626;
-            --border-color: #334155;
-            --radius: 12px;
-        }
-
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            margin: 0;
-            padding: 30px 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        /* --- Phần Header Nhẹ Nhàng --- */
-        .header { text-align: center; margin-bottom: 40px; }
-        .header h1 {
-            color: var(--text-main);
-            font-size: 32px;
-            font-weight: 700;
-            letter-spacing: -0.5px;
-            margin: 0 0 10px 0;
-        }
-        .header p {
-            color: var(--text-muted);
-            font-size: 16px;
-            margin: 0;
-            font-weight: 400;
-        }
-        .highlight { color: var(--brand-color); font-weight: 600; }
-
-        /* --- Bố Cục Chính --- */
-        .dashboard {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 25px;
-            width: 100%;
-            max-width: 1300px;
-        }
-
-        .card {
-            background-color: var(--surface);
-            border-radius: var(--radius);
-            padding: 25px;
-            border: 1px solid var(--border-color);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            display: flex;
-            flex-direction: column;
-        }
-
-        .section-title {
-            font-size: 14px;
-            text-transform: uppercase;
-            letter-spacing: 1.2px;
-            color: var(--text-muted);
-            font-weight: 600;
-            margin-bottom: 15px;
-            margin-top: 0;
-        }
-
-        /* --- Camera Nhận Diện --- */
-        .video-wrapper {
-            position: relative;
-            width: 100%;
-            aspect-ratio: 4/3;
-            background: #000;
-            border-radius: calc(var(--radius) - 4px);
-            overflow: hidden;
-            border: 1px solid var(--border-color);
-        }
-        video, canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform: scaleX(-1); }
-
-        .status-bar {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 15px;
-            gap: 15px;
-        }
-        .badge {
-            flex: 1;
-            padding: 12px 15px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            transition: all 0.2s ease;
-        }
-        .badge-left { background-color: rgba(16, 185, 129, 0.1); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.2); }
-        .badge-right { background-color: rgba(245, 158, 11, 0.1); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.2); }
-
-        /* --- Khung Chat (Văn Bản) --- */
-        .output-box {
-            background-color: var(--bg-color);
-            border: 1px solid var(--border-color);
-            border-radius: 12px 12px 0 0;
-            padding: 25px;
-            min-height: 120px;
-            display: flex;
-            align-items: center;
-            position: relative;
-        }
-
-        .text-container {
-            display: inline-flex;
-            align-items: center;
-            font-size: 38px;
-            color: var(--text-main);
-            font-weight: 500;
-            white-space: pre-wrap;
-            line-height: 1.2;
-        }
-        .cursor-caret {
-            display: inline-block;
-            width: 2.5px;
-            height: 40px;
-            background-color: var(--brand-color);
-            margin-left: 4px;
-            animation: blink 1s step-end infinite;
-        }
-
-        /* --- Thanh Công Cụ (Toolbar) Thẳng Hàng --- */
-        .toolbar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background-color: var(--surface-hover);
-            padding: 12px 20px;
-            border-radius: 0 0 12px 12px;
-            border: 1px solid var(--border-color);
-            border-top: none;
-            margin-bottom: 30px;
-        }
-
-        .tool-group {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
-
-        .btn {
-            background: transparent;
-            color: var(--text-main);
-            border: 1px solid var(--border-color);
-            padding: 8px 14px;
-            border-radius: 6px;
-            font-size: 13px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .btn:hover { background-color: rgba(255, 255, 255, 0.05); border-color: var(--text-muted); }
-
-        .btn-dict { color: var(--brand-color); border-color: rgba(99, 102, 241, 0.3); background: rgba(99, 102, 241, 0.1); }
-        .btn-dict:hover { background: var(--brand-color); color: white; border-color: var(--brand-color); }
-
-        .btn-delete { color: var(--warning); border-color: rgba(245, 158, 11, 0.3); }
-        .btn-delete:hover { background: var(--warning); color: #000; border-color: var(--warning); }
-
-        .btn-reset { color: var(--danger); border-color: rgba(239, 68, 68, 0.3); background: rgba(239, 68, 68, 0.1); }
-        .btn-reset:hover { background: var(--danger); color: white; border-color: var(--danger); }
-
-        /* --- Học Ký Hiệu (Text to Sign) --- */
-        .search-area { display: flex; gap: 12px; margin-bottom: 20px; }
-        .search-area input {
-            flex: 1;
-            padding: 14px 18px;
-            border-radius: 8px;
-            border: 1px solid var(--border-color);
-            background: var(--bg-color);
-            color: var(--text-main);
-            font-size: 15px;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-        .search-area input:focus { border-color: var(--brand-color); }
-
-        .btn-translate {
-            background-color: var(--brand-color);
-            color: white;
-            border: none;
-            padding: 0 24px;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 15px;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        .btn-translate:hover { background-color: var(--brand-hover); }
-
-        .gallery {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            min-height: 150px;
-            background: var(--bg-color);
-            padding: 20px;
-            border-radius: 8px;
-            border: 1px dashed var(--border-color);
-            align-content: flex-start;
-        }
-        .gallery-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            background: var(--surface);
-            padding: 10px;
-            border-radius: 8px;
-            border: 1px solid var(--border-color);
-            transition: transform 0.2s, border-color 0.2s;
-            cursor: zoom-in;
-        }
-        .gallery-item:hover { transform: translateY(-4px); border-color: var(--brand-color); }
-        .gallery-item img {
-            width: 140px;
-            height: 140px;
-            object-fit: cover;
-            border-radius: 6px;
-        }
-        .gallery-item span { margin-top: 12px; font-weight: 600; font-size: 18px; color: var(--text-main); }
-
-        /* --- Hướng Dẫn Sử Dụng (Ghi chú mới) --- */
-        .instructions-card {
-            grid-column: 1 / -1;
-            background-color: rgba(99, 102, 241, 0.05);
-            border-left: 4px solid var(--brand-color);
-            border-radius: var(--radius);
-            padding: 20px 25px;
-            color: var(--text-muted);
-            font-size: 15px;
-            line-height: 1.7;
-        }
-        .instructions-card strong {
-            color: var(--text-main);
-            font-size: 16px;
-            display: block;
-            margin-bottom: 10px;
-        }
-        .instructions-card ul { margin: 0; padding-left: 20px; }
-        .instructions-card li { margin-bottom: 6px; }
-        .instructions-card li:last-child { margin-bottom: 0; }
-
-        /* --- Modals (Từ điển & Ảnh) --- */
-        .modal {
-            display: none;
-            position: fixed;
-            left: 0; top: 0; width: 100%; height: 100%;
-            background-color: rgba(15, 23, 42, 0.85);
-            backdrop-filter: blur(5px);
-        }
-
-        #dictModal { z-index: 1000; }
-        .modal-content-dict {
-            margin: 5vh auto;
-            background-color: var(--bg-color);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius);
-            width: 90%;
-            max-width: 1100px;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
-            animation: slideUp 0.3s ease-out;
-            padding: 30px;
-            position: relative;
-        }
-
-        #imageModal { z-index: 9999; }
-        .modal-content-img {
-            margin: 80px auto;
-            display: block;
-            max-width: 600px;
-            width: 80%;
-            border-radius: 12px;
-            border: 4px solid var(--surface);
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            cursor: zoom-in;
-        }
-        .modal-content-img.super-zoom { transform: scale(1.6); cursor: zoom-out; }
-
-        .dict-header {
-            text-align: center;
-            color: var(--text-main);
-            font-size: 24px;
-            font-weight: 700;
-            margin-bottom: 25px;
-            letter-spacing: -0.5px;
-        }
-
-        .dict-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-            gap: 15px;
-            max-height: 60vh;
-            overflow-y: auto;
-            padding-right: 10px;
-        }
-
-        .dict-grid::-webkit-scrollbar { width: 6px; }
-        .dict-grid::-webkit-scrollbar-track { background: var(--bg-color); }
-        .dict-grid::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
-        .dict-grid::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
-
-        .dict-item {
-            background: var(--surface);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 12px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            transition: all 0.2s;
-            cursor: zoom-in;
-        }
-        .dict-item:hover { border-color: var(--brand-color); background: var(--surface-hover); }
-        .dict-item img { width: 90px; height: 90px; border-radius: 6px; object-fit: cover; }
-        .dict-item span { margin-top: 10px; font-weight: 600; font-size: 16px; color: var(--text-main); }
-
-        #caption {
-            margin: auto; display: block; width: 80%; text-align: center;
-            color: var(--text-main); padding: 15px 0; font-size: 28px; font-weight: 700;
-        }
-
-        .close {
-            position: absolute; top: 15px; right: 25px; color: var(--text-muted);
-            font-size: 35px; font-weight: 300; transition: color 0.2s; cursor: pointer; line-height: 1;
-        }
-        .close:hover { color: var(--danger); }
-
-        @keyframes slideUp { from {opacity: 0; transform: translateY(20px);} to {opacity: 1; transform: translateY(0);} }
-        @keyframes blink { 50% { opacity: 0; } }
-
-    </style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f6f7fb">
+  <meta name="description" content="ASL Studio: thử nhận diện ký hiệu bảng chữ cái ASL bằng camera với thao tác hai tay, soạn chữ và xem từ điển trực quan.">
+  <title>ASL Studio — Nhận diện ký hiệu bằng camera</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+  <script defer src="/app.js"></script>
 </head>
 <body>
-
-    <div class="header">
-        <h1>Ứng Dụng Nhận Diện Ký Hiệu ASL</h1>
-        <p>Thoải mái trò chuyện: <span class="highlight">Tạo ký hiệu</span> bằng tay trái, <span class="highlight">nắm tay phải lại</span> để gõ vào màn hình.</p>
+  <a class="skip-link" href="#studio">Đến ứng dụng</a>
+  <header class="site-header">
+    <div class="shell header-inner">
+      <a class="brand" href="#top" aria-label="ASL Studio — về đầu trang"><span class="brand-icon" aria-hidden="true">✳</span><span>ASL<span class="brand-accent">Studio</span></span></a>
+      <nav aria-label="Điều hướng chính"><a href="#studio">Thử nhận diện</a><a href="#hoc-ky-hieu">Học ký hiệu</a><a href="#huong-dan">Cách dùng</a></nav>
+      <span class="header-note">Dự án HCI · SGU</span>
     </div>
+  </header>
 
-    <div class="dashboard">
-        <!-- TRÁI: CAMERA VÀ NHẬN DIỆN -->
-        <div class="card">
-            <h2 class="section-title">Camera Tương Tác</h2>
-            <div class="video-wrapper">
-                <video id="video" autoplay playsinline></video>
-                <canvas id="canvas"></canvas>
-            </div>
-            <div class="status-bar">
-                <div id="left-status" class="badge badge-left">✋ Tay Trái: --</div>
-                <div id="right-status" class="badge badge-right">✊ Tay Phải: Đang chờ...</div>
-            </div>
+  <main id="top">
+    <section class="intro shell">
+      <div class="intro-copy">
+        <span class="eyebrow"><span class="dot"></span> Nhận diện ký hiệu ASL theo thời gian thực</span>
+        <h1>Biến cử chỉ<br>thành <em>con chữ.</em></h1>
+        <p>Một cách trực quan để khám phá bảng chữ cái ASL. Đưa tay vào camera, xem ký hiệu được nhận diện và nắm tay điều khiển để chốt chữ.</p>
+        <a class="primary-link" href="#studio">Bắt đầu trải nghiệm <span aria-hidden="true">↗</span></a>
+        <div class="intro-proof"><span>01 · Camera của bạn</span><span>02 · AI nhận diện</span><span>03 · Văn bản hiện ra</span></div>
+      </div>
+      <div class="intro-visual" aria-hidden="true">
+        <div class="visual-orbit"></div><span class="visual-hand">✋</span>
+        <div class="visual-tag tag-one">A <span>Đã nhận diện</span></div>
+        <div class="visual-tag tag-two">✳ <span>Giao tiếp dễ tiếp cận hơn</span></div>
+        <span class="visual-caption">DUAL HAND · HUMAN COMPUTER INTERACTION</span>
+      </div>
+    </section>
+
+    <section class="studio-section" id="studio" aria-labelledby="studio-title">
+      <div class="shell">
+        <div class="section-head">
+          <div><span class="kicker">01 / TRẢI NGHIỆM</span><h2 id="studio-title">Studio nhận diện</h2></div>
+          <p>Cho phép camera khi bạn sẵn sàng. Ứng dụng không tự bật camera khi tải trang.</p>
         </div>
 
-        <!-- PHẢI: KẾT QUẢ VÀ HỌC TẬP -->
-        <div class="card" style="padding: 0; background: transparent; border: none; box-shadow: none;">
+        <div class="connection-banner" id="connection-banner" role="status" aria-live="polite">
+          <span class="connection-dot" aria-hidden="true"></span>
+          <span id="connection-text">Đang kiểm tra mô hình nhận diện...</span>
+          <button type="button" id="retry-connection" hidden>Thử kết nối lại</button>
+        </div>
 
-            <h2 class="section-title" style="padding-left: 5px;">Văn Bản Soạn Thảo</h2>
-
-            <div class="output-box">
-                <div class="text-container">
-                    <span id="typed-text"></span><div class="cursor-caret"></div>
-                </div>
+        <div class="studio-grid">
+          <section class="panel camera-panel" aria-labelledby="camera-title">
+            <div class="panel-heading"><div><span class="panel-step">CAMERA TRỰC TIẾP</span><h3 id="camera-title">Khung tương tác</h3></div><span id="camera-indicator" class="camera-indicator">Chưa bật</span></div>
+            <div class="camera-frame">
+              <video id="video" autoplay muted playsinline aria-label="Hình ảnh camera trực tiếp"></video>
+              <canvas id="canvas" width="640" height="480" aria-hidden="true"></canvas>
+              <div class="camera-placeholder" id="camera-placeholder">
+                <span class="placeholder-icon" aria-hidden="true">▣</span>
+                <strong>Camera đang tắt</strong>
+                <p>Nhấn “Bật camera” để bắt đầu nhận diện.</p>
+              </div>
+              <span class="live-chip" id="live-chip" hidden><span></span> LIVE</span>
             </div>
+            <div class="camera-bottom">
+              <div class="hand-status"><span id="left-status">Tay tạo ký hiệu: chưa thấy</span><span id="right-status">Tay chốt chữ: chưa thấy</span></div>
+              <div class="camera-actions"><button class="button button-dark" id="start-camera" type="button" disabled>Bật camera <span aria-hidden="true">↗</span></button><button class="button button-outline" id="stop-camera" type="button" hidden>Tắt camera</button></div>
+            </div>
+            <p class="privacy-note">Video được xử lý trong trình duyệt. Chỉ tọa độ 21 điểm của tay tạo ký hiệu được gửi đến máy chủ nhận diện; ứng dụng không tải ảnh camera lên.</p>
+          </section>
 
-            <!-- TOOLBAR THẲNG HÀNG -->
+          <section class="panel output-panel" aria-labelledby="output-title">
+            <div class="panel-heading"><div><span class="panel-step">KẾT QUẢ CỦA BẠN</span><h3 id="output-title">Văn bản soạn thảo</h3></div><span class="output-tag">Bản thử nghiệm</span></div>
+            <div class="prediction-box"><span>Ký hiệu đang thấy</span><strong id="prediction" aria-live="polite">—</strong><small id="prediction-help">Đưa tay tạo ký hiệu vào khung hình</small></div>
+            <div class="typed-box" id="typed-box"><span id="typed-placeholder">Các chữ bạn chốt sẽ hiện tại đây...</span><span id="typed-text" aria-live="polite"></span><span class="caret" aria-hidden="true"></span></div>
             <div class="toolbar">
-                <div class="tool-group">
-                    <button class="btn btn-dict" onclick="openDictionary()">📖 Bảng Từ Điển</button>
-                    <button class="btn" onclick="speakText()">🔊 Phát Âm</button>
-                    <button class="btn" onclick="copyText()">📋 Sao Chép</button>
-                </div>
-                <div class="tool-group">
-                    <button class="btn btn-delete" onclick="deleteChar()">Xóa (Del)</button>
-                    <button class="btn btn-reset" onclick="resetText()">Làm Mới</button>
-                </div>
+              <button type="button" id="copy-text">Sao chép</button>
+              <button type="button" id="speak-text">Phát âm</button>
+              <button type="button" id="delete-char">Xóa chữ</button>
+              <button type="button" id="reset-text" class="danger">Làm mới</button>
             </div>
-
-            <div class="card">
-                <h2 class="section-title">Học Ký Hiệu Mới</h2>
-                <div class="search-area">
-                    <input type="text" id="learn-input" placeholder="Nhập từ vựng cần tạo ký hiệu (VD: APPLE, RAINBOW)..." onkeypress="handleEnterKey(event)">
-                    <button class="btn-translate" onclick="generateTutorial()">Tạo Kết Quả</button>
-                </div>
-                <div id="tutorial-gallery" class="gallery">
-                    <div style="color: var(--text-muted); margin: auto; font-style: italic; font-size: 14px;">Hình ảnh mô phỏng sẽ hiển thị tại đây. Nhấp vào ảnh để xem chi tiết.</div>
-                </div>
-            </div>
+            <p class="output-tip" id="action-message" role="status" aria-live="polite">Mẹo: tay tạo ký hiệu hiển thị chữ; tay còn lại mở rồi nắm để chốt.</p>
+            <div class="output-divider"></div>
+            <div class="quick-guide"><div><span>01</span><p><strong>Tạo ký hiệu</strong><br>Đưa tay trái vào camera</p></div><div><span>02</span><p><strong>Chốt chữ</strong><br>Mở rồi nắm tay phải</p></div></div>
+          </section>
         </div>
+      </div>
+    </section>
 
-        <!-- GHI CHÚ SỬ DỤNG MỚI -->
-        <div class="instructions-card">
-            <strong>💡 Hướng Dẫn Sử Dụng Hệ Thống</strong>
-            <ul>
-                <li><strong>Tay Trái (Tạo Ký Hiệu):</strong> Đưa tay trái vào khung camera để tạo các chữ cái (A-Z) hoặc lệnh điều khiển (Space, Del). Hệ thống AI sẽ liên tục quét và nhận diện động tác.</li>
-                <li><strong>Tay Phải (Chốt Lệnh):</strong> Xòe tay phải để ở trạng thái <em>Chờ</em>. Khi muốn gõ chữ cái từ tay trái vào màn hình, hãy nắm tay phải lại (giống như nắm đấm).</li>
-                <li><strong>Hỗ trợ tương tác:</strong> Nhấn nút <em>Bảng Từ Điển</em> để tra cứu nhanh toàn bộ hệ thống ký hiệu ASL. Nhấp đúp vào bất kỳ hình ảnh nào để phóng to xem chi tiết khung xương.</li>
-            </ul>
-        </div>
-    </div>
+    <section class="learn-section shell" id="hoc-ky-hieu" aria-labelledby="learn-title">
+      <div class="section-head"><div><span class="kicker">02 / HỌC VÀ THỬ</span><h2 id="learn-title">Học một ký hiệu mới</h2></div><p>Nhập một từ để xem cách đánh vần bằng ảnh ký hiệu chữ cái. Đây là đánh vần, chưa phải dịch câu sang ASL.</p></div>
+      <div class="learn-card">
+        <form id="learn-form" class="learn-form"><label for="learn-input">Từ bạn muốn đánh vần</label><div><input id="learn-input" type="text" maxlength="32" placeholder="Ví dụ: HELLO hoặc XIN CHÀO" autocomplete="off"><button class="button button-dark" type="submit">Xem ký hiệu <span aria-hidden="true">→</span></button></div></form>
+        <div class="learn-help"><span aria-hidden="true">✳</span><p>Muốn xem tất cả? Mở bảng chữ cái và chạm vào từng ký hiệu để phóng to.</p><button type="button" id="open-dictionary">Mở bảng chữ cái ↗</button></div>
+        <div id="tutorial-gallery" class="gallery" aria-live="polite"><p class="empty-gallery">Ảnh ký hiệu sẽ xuất hiện ở đây.</p></div>
+      </div>
+    </section>
 
-    <!-- HỘP THOẠI MODAL PHÓNG TO ẢNH -->
-    <div id="imageModal" class="modal">
-        <span class="close" onclick="closeImageModal()">&times;</span>
-        <img class="modal-content-img" id="expandedImg">
-        <div id="caption"></div>
-    </div>
+    <section class="guide-section" id="huong-dan" aria-labelledby="guide-title"><div class="shell guide-layout"><div><span class="kicker">03 / CẦN BIẾT</span><h2 id="guide-title">Để nhận diện<br>tốt hơn</h2><p>Ánh sáng đủ và tay nằm trọn trong khung hình sẽ giúp việc theo dõi ổn định hơn. Hãy thử từng ký hiệu rõ ràng, giữ tay một nhịp trước khi chốt.</p></div><div class="guide-list"><div><span>01</span><strong>Đặt camera ngang tầm tay</strong><p>Để cả hai bàn tay nằm trong khung và tránh ngược sáng.</p></div><div><span>02</span><strong>Tay trái tạo ký hiệu</strong><p>Tay phải mở để chuẩn bị, rồi nắm lại để chốt đúng một lần.</p></div><div><span>03</span><strong>Hiểu giới hạn bản thử nghiệm</strong><p>Mô hình đọc từng khung hình và chủ yếu nhận diện ký hiệu tĩnh; các chữ cần chuyển động như J, Z có thể chưa chính xác.</p></div></div></div></section>
+  </main>
 
-    <!-- HỘP THOẠI MODAL TỪ ĐIỂN -->
-    <div id="dictModal" class="modal">
-        <div class="modal-content-dict">
-            <span class="close" onclick="closeDictModal()">&times;</span>
-            <div class="dict-header">Bảng Mã Ký Hiệu ASL</div>
-            <div class="dict-grid" id="dict-grid"></div>
-        </div>
-    </div>
+  <footer class="footer"><div class="shell"><span class="brand"><span class="brand-icon" aria-hidden="true">✳</span>ASL<span class="brand-accent">Studio</span></span><p>Dự án HCI của Lý Đình Bách & Thái Hoàng Ân · Đại học Sài Gòn</p><a href="https://github.com/bachkhi29/HCI_ASL_Recognition" target="_blank" rel="noopener noreferrer">Xem mã nguồn ↗</a></div></footer>
 
-    <script>
-        // ========================================================
-        // 0. CÁC TÍNH NĂNG GIAO DIỆN VÀ MODAL
-        // ========================================================
-        function deleteChar() {
-            typedText = typedText.slice(0, -1);
-            document.getElementById('typed-text').innerText = typedText;
-        }
-
-        function resetText() {
-            typedText = "";
-            document.getElementById('typed-text').innerText = typedText;
-        }
-
-        function copyText() {
-            if (!typedText) return;
-            navigator.clipboard.writeText(typedText);
-            alert("Đã sao chép vào bộ nhớ tạm!");
-        }
-
-        function speakText() {
-            if (!typedText) return;
-            let utterance = new SpeechSynthesisUtterance(typedText);
-            utterance.lang = "en-US";
-            utterance.rate = 0.9;
-            window.speechSynthesis.speak(utterance);
-        }
-
-        // Logic Modal Phóng To Ảnh
-        const imageModal = document.getElementById("imageModal");
-        const modalImg = document.getElementById("expandedImg");
-        const captionText = document.getElementById("caption");
-
-        function openImageModal(imgSrc, altText) {
-            imageModal.style.display = "block";
-            modalImg.src = imgSrc;
-            captionText.innerHTML = "KÝ HIỆU: " + altText;
-        }
-
-        function closeImageModal() {
-            imageModal.style.display = "none";
-            modalImg.classList.remove('super-zoom');
-        }
-
-        modalImg.onclick = function(event) {
-            event.stopPropagation();
-            this.classList.toggle('super-zoom');
-        }
-
-        // Logic Modal Từ Điển
-        const dictModal = document.getElementById("dictModal");
-        const dictGrid = document.getElementById("dict-grid");
-
-        function openDictionary() {
-            dictModal.style.display = "block";
-
-            if (dictGrid.children.length === 0) {
-                const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
-                const allSigns = [...letters, "SPACE", "DEL"];
-                const cacheBuster = new Date().getTime();
-
-                allSigns.forEach(sign => {
-                    let div = document.createElement('div');
-                    div.className = 'dict-item';
-                    let img = document.createElement('img');
-
-                    let fallbackSrc = `https://via.placeholder.com/100/1e293b/6366f1?text=${sign}`;
-
-                    if (sign === "SPACE") {
-                        img.src = `assets/space.jpg?v=${cacheBuster}`;
-                    } else if (sign === "DEL") {
-                        img.src = `assets/Delete.jpg?v=${cacheBuster}`;
-                    } else {
-                        img.src = `assets/${sign}.jpg?v=${cacheBuster}`;
-                    }
-
-                    img.onerror = function() {
-                        this.onerror = null;
-                        this.src = fallbackSrc;
-                    };
-
-                    let label = document.createElement('span');
-                    label.innerText = sign;
-
-                    div.appendChild(img);
-                    div.appendChild(label);
-
-                    div.onclick = function() {
-                        openImageModal(img.src, sign);
-                    };
-
-                    dictGrid.appendChild(div);
-                });
-            }
-        }
-
-        function closeDictModal() { dictModal.style.display = "none"; }
-
-        // Đóng các modal khi click vùng ngoài
-        window.onclick = function(event) {
-            if (event.target == imageModal) closeImageModal();
-            if (event.target == dictModal) closeDictModal();
-        }
-
-        // ========================================================
-        // 1. TÍNH NĂNG TEXT TO SIGN (LỌC TIẾNG VIỆT & XUẤT ẢNH)
-        // ========================================================
-        function removeVietnameseTones(str) {
-            str = str.replace(/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/g,"a");
-            str = str.replace(/è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ/g,"e");
-            str = str.replace(/ì|í|ị|ỉ|ĩ/g,"i");
-            str = str.replace(/ò|ó|ọ|ỏ|õ|ô|ồ|ố|ộ|ổ|ỗ|ơ|ờ|ớ|ợ|ở|ỡ/g,"o");
-            str = str.replace(/ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ/g,"u");
-            str = str.replace(/ỳ|ý|ỵ|ỷ|ỹ/g,"y");
-            str = str.replace(/đ/g,"d");
-            str = str.replace(/À|Á|Ạ|Ả|Ã|Â|Ầ|Ấ|Ậ|Ẩ|Ẫ|Ă|Ằ|Ắ|Ặ|Ẳ|Ẵ/g, "A");
-            str = str.replace(/È|É|Ẹ|Ẻ|Ẽ|Ê|Ề|Ế|Ệ|Ể|Ễ/g, "E");
-            str = str.replace(/Ì|Í|Ị|Ỉ|Ĩ/g, "I");
-            str = str.replace(/Ò|Ó|Ọ|Ỏ|Õ|Ô|Ồ|Ố|Ộ|Ổ|Ỗ|Ơ|Ờ|Ớ|Ợ|Ở|Ỡ/g, "O");
-            str = str.replace(/Ù|Ú|Ụ|Ủ|Ũ|Ư|Ừ|Ứ|Ự|Ử|Ữ/g, "U");
-            str = str.replace(/Ỳ|Ý|Ỵ|Ỷ|Ỹ/g, "Y");
-            str = str.replace(/Đ/g, "D");
-            return str.toUpperCase();
-        }
-
-        function handleEnterKey(e) { if (e.key === 'Enter') generateTutorial(); }
-
-        function generateTutorial() {
-            const rawInput = document.getElementById('learn-input').value;
-            if (rawInput.trim() === "") return;
-
-            const cleanString = removeVietnameseTones(rawInput).replace(/[^A-Z\s]/g, "");
-            const gallery = document.getElementById('tutorial-gallery');
-            gallery.innerHTML = "";
-
-            const cacheBuster = new Date().getTime();
-
-            for (let i = 0; i < cleanString.length; i++) {
-                let char = cleanString[i];
-                let itemDiv = document.createElement('div');
-                itemDiv.className = 'gallery-item';
-
-                let img = document.createElement('img');
-                let label = document.createElement('span');
-
-                let fallbackSrc = `https://via.placeholder.com/140/1e293b/6366f1?text=${char}`;
-
-                if (char === " ") {
-                    img.src = `assets/space.jpg?v=${cacheBuster}`;
-                    img.alt = "SPACE";
-                    fallbackSrc = 'https://via.placeholder.com/140/1e293b/6366f1?text=SPACE';
-                    label.innerText = "[Space]";
-                } else {
-                    img.src = `assets/${char}.jpg?v=${cacheBuster}`;
-                    img.alt = char;
-                    label.innerText = char;
-                }
-
-                img.onerror = function() {
-                    this.onerror = null;
-                    this.src = fallbackSrc;
-                };
-
-                itemDiv.onclick = function() { openImageModal(img.src, img.alt); };
-
-                itemDiv.appendChild(img);
-                itemDiv.appendChild(label);
-                gallery.appendChild(itemDiv);
-            }
-        }
-
-        // ========================================================
-        // 2. TÍNH NĂNG NHẬN DIỆN & HCI 2 TAY (CỐT LÕI)
-        // ========================================================
-        const videoElement = document.getElementById('video');
-        const canvasElement = document.getElementById('canvas');
-        const canvasCtx = canvasElement.getContext('2d');
-        const typedTextBox = document.getElementById('typed-text');
-
-        const leftStatus = document.getElementById('left-status');
-        const rightStatus = document.getElementById('right-status');
-
-        let previousRightHandState = false;
-        let currentPrediction = "";
-        let typedText = "";
-        let isFetching = false;
-
-        canvasElement.width = 640;
-        canvasElement.height = 480;
-
-        function isHandOpen(landmarks) {
-            const distMiddleTip = Math.hypot(landmarks[12].x - landmarks[0].x, landmarks[12].y - landmarks[0].y);
-            const distMiddleMcp = Math.hypot(landmarks[9].x - landmarks[0].x, landmarks[9].y - landmarks[0].y);
-            return distMiddleTip > distMiddleMcp;
-        }
-
-        async function sendToAPI(rawLeftHandLandmarks) {
-            if (isFetching) return;
-            isFetching = true;
-
-            const mirroredLandmarks = rawLeftHandLandmarks.map(lm => ({
-                x: 1.0 - lm.x,
-                y: lm.y,
-                z: lm.z
-            }));
-
-            try {
-              const response = await fetch('http://127.0.0.1:8000/api/predict', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ landmarks: mirroredLandmarks })
-                });
-                const data = await response.json();
-                if (data.status === "success") {
-                    currentPrediction = data.prediction;
-                    leftStatus.innerHTML = `✋ Tay Trái: <strong>${currentPrediction}</strong>`;
-                }
-            } catch (error) {
-                console.error("Lỗi API:", error);
-            }
-            isFetching = false;
-        }
-
-        function onResults(results) {
-            canvasCtx.save();
-            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-
-            let signHand = null;
-            let controlHand = null;
-
-            if (results.multiHandLandmarks && results.multiHandedness) {
-                for (let i = 0; i < results.multiHandLandmarks.length; i++) {
-                    const landmarks = results.multiHandLandmarks[i];
-                    const label = results.multiHandedness[i].label;
-
-                    if (label === 'Left') {
-                        controlHand = landmarks;
-                        drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, {color: '#ffffff', lineWidth: 3});
-                        drawLandmarks(canvasCtx, landmarks, {color: '#f59e0b', lineWidth: 1, radius: 3});
-                    } else if (label === 'Right') {
-                        signHand = landmarks;
-                        drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, {color: '#ffffff', lineWidth: 3});
-                        drawLandmarks(canvasCtx, landmarks, {color: '#10b981', lineWidth: 1, radius: 3});
-                    }
-                }
-            }
-
-            if (signHand) {
-                sendToAPI(signHand);
-            } else {
-                currentPrediction = "";
-                leftStatus.innerHTML = "✋ Tay Trái: <em>Trống</em>";
-            }
-
-            if (controlHand) {
-                let isRightHandOpenNow = isHandOpen(controlHand);
-
-                if (previousRightHandState === true && isRightHandOpenNow === false) {
-                    if (currentPrediction !== "") {
-                        let cmd = currentPrediction.toLowerCase().trim();
-
-                        if (cmd === "del" || cmd === "delete") {
-                            typedText = typedText.slice(0, -1);
-                        } else if (cmd === "space") {
-                            typedText += " ";
-                        } else {
-                            typedText += currentPrediction;
-                        }
-
-                        typedTextBox.innerText = typedText;
-
-                        rightStatus.innerHTML = "✊ Tay Phải: <strong>ĐÃ GÕ!</strong>";
-                        rightStatus.style.backgroundColor = "rgba(16, 185, 129, 0.2)";
-                        setTimeout(() => { rightStatus.style.backgroundColor = "rgba(245, 158, 11, 0.1)"; }, 300);
-                    }
-                } else if (isRightHandOpenNow) {
-                    rightStatus.innerHTML = "🖐️ Tay Phải: <em>Sẵn sàng</em>";
-                } else {
-                    rightStatus.innerHTML = "✊ Tay Phải: <em>Đang nắm</em>";
-                }
-                previousRightHandState = isRightHandOpenNow;
-            } else {
-                rightStatus.innerHTML = "✊ Tay Phải: <em>Đang chờ...</em>";
-                previousRightHandState = false;
-            }
-
-            canvasCtx.restore();
-        }
-
-        const hands = new Hands({locateFile: (file) => {
-            return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
-        }});
-
-        hands.setOptions({
-            maxNumHands: 2,
-            modelComplexity: 1,
-            minDetectionConfidence: 0.6,
-            minTrackingConfidence: 0.6
-        });
-        hands.onResults(onResults);
-
-        const camera = new Camera(videoElement, {
-            onFrame: async () => { await hands.send({image: videoElement}); },
-            width: 640, height: 480
-        });
-        camera.start();
-    </script>
+  <dialog id="dictionary-dialog" class="modal"><div class="modal-head"><div><span class="kicker">BẢNG THAM KHẢO</span><h2>Bảng chữ cái ASL</h2></div><button type="button" id="close-dictionary" aria-label="Đóng bảng chữ cái">×</button></div><p>Chạm vào ảnh để xem lớn hơn. J và Z cần chuyển động, ảnh chỉ minh họa tư thế.</p><div id="dictionary-grid" class="dictionary-grid"></div></dialog>
+  <dialog id="image-dialog" class="image-modal"><button type="button" id="close-image" aria-label="Đóng ảnh">×</button><img id="expanded-image" alt=""><strong id="image-caption"></strong></dialog>
 </body>
 </html>

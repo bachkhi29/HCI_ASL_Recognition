@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: asl-studio-hci
+    runtime: python
+    plan: free
+    buildCommand: pip install -r Phan_tich_va_nhan_dang_mau/Phase2_OnlineWebService/backend/requirements.txt
+    startCommand: uvicorn main:app --app-dir Phan_tich_va_nhan_dang_mau/Phase2_OnlineWebService/backend --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9

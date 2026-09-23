@@ -1,5 +1,7 @@
 # ASL Studio · Dual-Hand HCI
 
+**[Mở web app ASL Studio](https://asl-studio-hci.onrender.com/)** · [Kiểm tra trạng thái mô hình](https://asl-studio-hci.onrender.com/api/health)
+
 Web app nhận diện bảng chữ cái ASL bằng camera, dựa trên mô hình SVM phân cấp của đồ án HCI. **Tay trái** tạo ký hiệu; **tay phải** mở rồi nắm để chốt chữ. Ứng dụng còn có bảng tham khảo A–Z, đánh vần từ bằng ảnh, sao chép và phát âm văn bản.
 
 > Đây là bản thử nghiệm học tập, nhận diện từng khung hình và chủ yếu phù hợp ký hiệu tĩnh. J và Z có chuyển động nên có thể nhận diện chưa chính xác. Công cụ đánh vần từng chữ cái, không dịch ngữ pháp ASL hay thay thế phiên dịch ngôn ngữ ký hiệu.
@@ -27,7 +29,7 @@ Repo có [`render.yaml`](render.yaml) để triển khai FastAPI và giao diện
 1. Đăng nhập [Render](https://dashboard.render.com/) và chọn **New → Blueprint**.
 2. Kết nối tài khoản GitHub, chọn repo `bachkhi29/HCI_ASL_Recognition`, nhánh `master` và áp dụng blueprint.
 3. Chờ build và kiểm tra `https://<tên-dịch-vụ>.onrender.com/api/health` trả `ready: true`; sau đó mở trang gốc và cấp quyền camera.
-4. Để ghim liên kết như repo khác: vào **GitHub repo → About → Edit → Website**, dán URL Render sau khi dịch vụ đã hoạt động.
+4. URL đang chạy: **https://asl-studio-hci.onrender.com/**. Ghim URL này vào **GitHub repo → About → Edit → Website**.
 
 Gói miễn phí Render có thể ngủ khi không có lượt truy cập; lần mở đầu sau một thời gian không dùng sẽ chậm. Mô hình `joblib` chỉ nên tải từ nguồn tin cậy; các file `.pkl` hiện có được lưu trong repo. Nếu `/api/health` trả 503, xem log khởi động để kiểm tra tương thích phiên bản scikit-learn của mô hình.
 
